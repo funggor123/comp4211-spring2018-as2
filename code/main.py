@@ -78,9 +78,13 @@ if __name__ == '__main__':
     tune = True
     encoder_scratch = True
     encoder_pretrained = False
-    decoder = True
-    train_round = 1
-    top_accuracy = []
+    tensorboard = False
+    decoder = False
+    train_round = 4
+    train_epoch = 5
+    top_1_accuracy_arr = []
+    loss_arr = []
+    top_3_accuracy_arr = []
 
     '''
     a. CNN Encoder from scratch
@@ -88,54 +92,99 @@ if __name__ == '__main__':
     if encoder_scratch:
         print("---A. Encoder Scratch---")
         if tune:
-            '''
-            1. Hold out Validation
-            '''
             print("---1. Hold out Validation---")
             train_set, valid_set = train.cut_validation(train_ds)
             best_set_parameters = train.tune_encoder_params(train_set, valid_set)
         for i in range(train_round):
-            '''
-            2. Training from Scratch
-            '''
-            print("---2. Training Entire --")
+            print("---2. Training in whole training set --")
             print("Round: ", i + 1)
-            net, predictor, test_loss, test_accuracy = train.train_encoder(train_ds, hidden_num=best_set_parameters[0],
-                                                                           opt=best_set_parameters[1],
-                                                                           learning_r=best_set_parameters[2],
-                                                                           epoch=10, test_set=eval_ds, name="Test")
+
+            tensorboard = False
+            if i == 2:
+                tensorboard = True
+
+            net, predictor, best_test_loss, best_test_accuracy, accuracy_array = train.train_encoder(train_ds,
+                                                                                                     hidden_num=
+                                                                                                     best_set_parameters[
+                                                                                                         0],
+                                                                                                     opt=
+                                                                                                     best_set_parameters[
+                                                                                                         1],
+                                                                                                     learning_r=
+                                                                                                     best_set_parameters[
+                                                                                                         2],
+                                                                                                     epoch=train_epoch,
+                                                                                                     test_set=eval_ds,
+                                                                                                     name="Test",
+                                                                                                     tensorboard=tensorboard)
+
+            print("Top-1 Accuracy", best_test_accuracy)
+            print("Top-3 Accuracy", sorted(accuracy_array)[-3])
+            print("Cross Entropy Loss", best_test_loss)
+
+            top_1_accuracy_arr.append(best_test_accuracy)
+            top_3_accuracy_arr.append(sorted(accuracy_array)[-3])
+            loss_arr.append(best_test_loss)
+
+        print("Top-1 Accuracy Mean and std", np.array(top_1_accuracy_arr).mean(), " , ",
+              np.array(top_1_accuracy_arr).std())
+        print("Top-3 Accuracy Mean and std", np.array(top_3_accuracy_arr).mean(), " , ",
+              np.array(top_3_accuracy_arr).std())
+        print("Cross Entropy Loss Mean and std", np.array(loss_arr).mean(), " , ", np.array(loss_arr).std())
 
     print("---------------------------------------------------------------------------------------------")
+
     '''
     b. CNN Encoder from Pre-Trained
     '''
     if encoder_pretrained:
         print("---B. Encoder Pretrained---")
         if tune:
-            '''
-            1. Hold out Validation
-            '''
             print("---1. Hold out Validation---")
             train_set, valid_set = train.cut_validation(train_ds)
             best_set_parameters = train.tune_encoder_params(train_set, valid_set,
                                                             pre_trained_path='./pretrained_encoder.pt')
         for i in range(train_round):
-            '''
-            2. Training from Scratch
-            '''
-            print("---2. Training Entire --")
+            print("---2. Training in whole training set --")
             print("Round: ", i + 1)
-            net, predictor = train.train_encoder(train_ds, hidden_num=best_set_parameters[0],
-                                                 opt=best_set_parameters[1],
-                                                 learning_r=best_set_parameters[2],
-                                                 epoch=10, pre_trained_path='./pretrained_encoder.pt')
-            train.test_encoder(net, predictor, train_ds, "Training")
-            '''
-            3. Testing
-            '''
-            print("---3. Testing----")
-            train.test_encoder(net, predictor, eval_ds, "Testing")
+
+            tensorboard = False
+            if i == 2:
+                tensorboard = True
+
+            net, predictor, best_test_loss, best_test_accuracy, accuracy_array = train.train_encoder(train_ds,
+                                                                                                     hidden_num=
+                                                                                                     best_set_parameters[
+                                                                                                         0],
+                                                                                                     opt=
+                                                                                                     best_set_parameters[
+                                                                                                         1],
+                                                                                                     learning_r=
+                                                                                                     best_set_parameters[
+                                                                                                         2],
+                                                                                                     epoch=train_epoch,
+                                                                                                     test_set=eval_ds,
+                                                                                                     name="Test",
+                                                                                                     tensorboard=tensorboard,
+                                                                                                     pre_trained_path='./pretrained_encoder.pt'
+                                                                                                     )
+
+            print("Top-1 Accuracy", best_test_accuracy)
+            print("Top-3 Accuracy", sorted(accuracy_array)[-3])
+            print("Cross Entropy Loss", best_test_loss)
+
+            top_1_accuracy_arr.append(best_test_accuracy)
+            top_3_accuracy_arr.append(sorted(accuracy_array)[-3])
+            loss_arr.append(best_test_loss)
+
+        print("Top-1 Accuracy Mean and std", np.array(top_1_accuracy_arr).mean(), " , ",
+              np.array(top_1_accuracy_arr).std())
+        print("Top-3 Accuracy Mean and std", np.array(top_3_accuracy_arr).mean(), " , ",
+              np.array(top_3_accuracy_arr).std())
+        print("Cross Entropy Loss Mean and std", np.array(loss_arr).mean(), " , ", np.array(loss_arr).std())
+
     print("---------------------------------------------------------------------------------------------")
+
     '''
     c. CNN Decoder
     '''
@@ -143,23 +192,16 @@ if __name__ == '__main__':
         print("---C. Decoder ---")
         best_set_parameters = ["ADAM", 0.001]
         if tune:
-            '''
-            1. Hold out Validation
-            '''
             print("---1. Hold out Validation---")
             train_set, valid_set = train.cut_validation(train_ds)
             best_set_parameters = train.tune_decoder_params(train_set, valid_set,
                                                             pre_trained_path='./pretrained_encoder.pt')
-        '''
-        2. Training from Scratch
-        '''
         print("---2. Training Entire---")
-        encoder, decoder = train.train_decoder(train_ds, opt=best_set_parameters[0],
-                                               learning_r=best_set_parameters[1],
-                                               epoch=2, pre_trained_path='./pretrained_encoder.pt')
-        train.test_decoder(encoder, decoder, train_ds, "Training")
-        '''
-        3. Testing
-        '''
-        print("---3. Testing----")
-        train.test_decoder(encoder, decoder, eval_ds, "Testing")
+        encoder, decoder, best_loss = train.train_decoder(train_ds, opt=best_set_parameters[0],
+                                                          learning_r=best_set_parameters[1],
+                                                          epoch=train_epoch, pre_trained_path='./pretrained_encoder.pt',
+                                                          name="Test", test_set=eval_ds,
+                                                          tensorboard=True,
+                                                          img_tag="Img_Result_Test"
+                                                          )
+        print("Lowest Loss", best_loss)

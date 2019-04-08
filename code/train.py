@@ -6,12 +6,18 @@ from encoder import Encoder
 from predictor import Predictor
 from decoder import Decoder
 import random
+import torchvision.utils as vutils
+from tensorboardX import SummaryWriter
 
 use_gpu = torch.cuda.is_available()
 use_gpu = True
 
+writer_train = SummaryWriter('runs/train_0')
+writer_test = SummaryWriter('runs/test_0')
+
 
 def cut_validation(data_to_cut, ratio_of_train=0.8):
+    print("Split ratio: ", ratio_of_train)
     train_size = int(ratio_of_train * len(data_to_cut))
     test_size = len(data_to_cut) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(data_to_cut, [train_size, test_size])
@@ -50,15 +56,18 @@ def tune_encoder_params(train_set, vad_set, pre_trained_path=""):
             rounds += 1
             print("(Round " + str(rounds) + ") Parameters Details (opt,lr,hid):", opt[0],
                   "," + str(opt[1]) + " ," + str(hidden_num))
-            net, predictor, test_loss, test_accuracy = train_encoder(train_set, epoch=epoch, learning_r=opt[1], hidden_num=hidden_num,
-                                                                     opt=opt[0],
-                                                                     pre_trained_path=pre_trained_path, test_set=vad_set)
+            net, predictor, test_loss, test_accuracy, _ = train_encoder(train_set, epoch=epoch, learning_r=opt[1],
+                                                                        hidden_num=hidden_num,
+                                                                        opt=opt[0],
+                                                                        pre_trained_path=pre_trained_path,
+                                                                        test_set=vad_set)
             if test_loss < best_loss:
                 best_loss = test_loss
                 best_accuracy = test_accuracy
                 best_set_of_parameters = [hidden_num, opt[0], opt[1]]
     print("Best Hyper-parameters obtains after the hold out validation [hid,opt,lr] ")
-    print(best_set_of_parameters, "with ", best_accuracy, " of validation accuracy with Cross Entropy Loss: ", best_loss)
+    print(best_set_of_parameters, "with ", best_accuracy, " of validation accuracy with Cross Entropy Loss: ",
+          best_loss, " in rounds ", rounds)
     return best_set_of_parameters
 
 
@@ -92,11 +101,11 @@ def test_encoder(model, predictor, vad_set, name="Validation", show_log=True):
 
     if show_log:
         print(" " + name + ' Accuracy of the model on the ' + name + ' set images: {} %'.format(100 * correct / total),
-          " with Cross Entropy Loss: ", total_loss)
+              " with Cross Entropy Loss: ", total_loss)
     return total_loss, 100 * correct / total
 
 
-def test_decoder(encoder, decoder, vad_set, name="Validation"):
+def test_decoder(encoder, decoder, vad_set, name="Validation", show_log=True, img_tag="", tensorboard=False, epoch=0):
     data_loader = make_data_loader(vad_set)
     total_loss = 0
     rounds = 0
@@ -115,19 +124,30 @@ def test_decoder(encoder, decoder, vad_set, name="Validation"):
 
         if num_show < num_show_picture and random.random() > 0.5:
             num_show += 1
-            show_image(outputs.cpu().detach().numpy()[0][0])
+            if tensorboard:
+                raw = vutils.make_grid(images, normalize=True, scale_each=True)
+                writer_test.add_image(img_tag + "Raw Image", raw, epoch)
+
+                img = vutils.make_grid(outputs.cpu(), normalize=True, scale_each=True)
+                writer_test.add_image(img_tag + "Reconstruct by CNN", img, epoch)
 
         loss = criterion(outputs, images)
         total_loss += loss.item()
 
-    print(name + ' MSE Loss of the model on the ' + name + ' set images: {}'.format(total_loss / rounds))
-    return total_loss
+    if show_log:
+        print(" ", name + ' MSE Loss of the model on the ' + name + ' set images: {}'.format(total_loss / rounds))
+    return total_loss / rounds
 
 
-def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=32, pre_trained_path='', test_set=None, name="Validation"):
+def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=32, pre_trained_path='', test_set=None,
+                  name="Validation", tensorboard=False):
     data_loader = make_data_loader(data_to_loader=train_set, batch_size=batch_size)
     best_test_loss = 9999999999999
     best_test_accuracy = 0
+    best_train_accuracy = 0
+    best_train_loss = 9999999999
+    accuracy_array = []
+    train_accuracy_array = []
 
     net = Encoder()
     predictor = Predictor(hidden_num=hidden_num)
@@ -148,7 +168,7 @@ def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=
 
     for epoch in range(epoch):  # loop over the dataset multiple times
         print("Epoch: ", epoch)
-        running_loss = 0.0
+
         for i, data in enumerate(data_loader, 0):
             # get the inputs
             inputs, labels = data
@@ -168,24 +188,42 @@ def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=
             loss.backward()
             optimizer.step()
 
-            # print statistics
-            running_loss += loss.item()
-            if i % 2000 == 1999:  # print every 2000 mini-batches
-                print('[%d, %5d] loss: %.3f' %
-                      (epoch + 1, i + 1, running_loss / 2000))
-                running_loss = 0.0
+        train_loss, accuracy = test_encoder(net, predictor, train_set, name="Training", show_log=True)
+        train_accuracy_array.append(accuracy)
+
+        if train_loss < best_train_loss:
+            best_train_loss = train_loss
+            best_train_accuracy = accuracy
 
         if test_set is not None:
             test_loss, accuracy = test_encoder(net, predictor, test_set, name=name, show_log=True)
+            accuracy_array.append(accuracy)
             if test_loss < best_test_loss:
                 best_test_loss = test_loss
                 best_test_accuracy = accuracy
 
-    return net, predictor, best_test_loss, best_test_accuracy
+        if tensorboard:
+            writer_train.add_scalar('loss', best_train_loss, epoch)
+            writer_test.add_scalar('loss', best_test_loss, epoch)
+
+            writer_train.add_scalar('top-1_accuracy', best_train_accuracy, epoch)
+            writer_test.add_scalar('top-1_accuracy', best_test_accuracy, epoch)
+
+            if len(accuracy_array) < 3:
+                writer_train.add_scalar('top-3_accuracy', 0, epoch)
+                writer_test.add_scalar('top-3_accuracy', 0, epoch)
+            else:
+                writer_train.add_scalar('top-3_accuracy', sorted(train_accuracy_array)[-3], epoch)
+                writer_test.add_scalar('top-3_accuracy', sorted(accuracy_array)[-3], epoch)
+
+    return net, predictor, best_test_loss, best_test_accuracy, accuracy_array
 
 
-def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_size=32, pre_trained_path=''):
+def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_size=32, pre_trained_path='',
+                  test_set=None,
+                  name="Validation", tensorboard=False, img_tag=""):
     data_loader = make_data_loader(data_to_loader=train_set, batch_size=batch_size)
+    best_test_loss = 999999999
 
     if encoder is None:
         encoder = Encoder()
@@ -208,8 +246,8 @@ def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_siz
         optimizer = optim.SGD(params, lr=learning_r)
 
     for epoch in range(epoch):  # loop over the dataset multiple times
+        print("Epoch: ", epoch)
 
-        running_loss = 0.0
         for i, data in enumerate(data_loader, 0):
             # get the inputs
             inputs, labels = data
@@ -228,20 +266,28 @@ def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_siz
             loss.backward()
             optimizer.step()
 
-            # print statistics
-            running_loss += loss.item()
-            if i % 2000 == 1999:  # print every 2000 mini-batches
-                print('[%d, %5d] loss: %.3f' %
-                      (epoch + 1, i + 1, running_loss / 2000))
-                running_loss = 0.0
+        train_loss = test_decoder(encoder, decoder, vad_set=train_set, name="Training", show_log=True, img_tag=img_tag,
+                                  tensorboard=tensorboard, epoch=epoch)
 
-    return encoder, decoder
+        if test_set is not None:
+            test_loss = test_decoder(encoder, decoder, vad_set=test_set, name=name, show_log=True, img_tag=img_tag,
+                                     tensorboard=tensorboard, epoch=epoch)
+            if tensorboard and name is not "Validation":
+                writer_test.add_scalar('MSE_loss', test_loss, epoch)
+
+            if test_loss < best_test_loss:
+                best_test_loss = test_loss
+
+        if tensorboard and name is not "Validation":
+            writer_train.add_scalar('MSE_loss', train_loss, epoch)
+
+    return encoder, decoder, best_test_loss
 
 
 def tune_decoder_params(train_set, vad_set, pre_trained_path=""):
     opts = [("ADAM", 0.001), ("SGD", 0.1), ("SGD", 0.01)]
     epoch = 3
-    best_accuracy = -1
+    best_test_loss = 99999
     best_set_of_parameters = []
     rounds = 0
 
@@ -254,14 +300,14 @@ def tune_decoder_params(train_set, vad_set, pre_trained_path=""):
         rounds += 1
         print("(Round " + str(rounds) + ") Parameters Details (opt,lr):", opt[0],
               ", " + str(opt[1]))
-        encoder, decoder = train_decoder(train_set, epoch=epoch, learning_r=opt[1],
-                                         opt=opt[0],
-                                         pre_trained_path=pre_trained_path)
-        accuracy = test_decoder(encoder, decoder, vad_set)
-        if accuracy > best_accuracy:
-            best_accuracy = accuracy
+        encoder, decoder, test_loss = train_decoder(train_set, epoch=epoch, learning_r=opt[1],
+                                                    opt=opt[0],
+                                                    pre_trained_path=pre_trained_path,
+                                                    test_set=vad_set,
+                                                    img_tag="Img_Results_Val_Round_"+str(rounds), tensorboard=True)
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss
             best_set_of_parameters = [opt[0], opt[1]]
     print("Best Hyper-parameters obtains after the hold out validation [hid,opt,lr] ")
-    print(best_set_of_parameters)
-    print("with ", best_accuracy, " of validation accuracy")
+    print(best_set_of_parameters, " with ", best_test_loss, " of lowest validation loss in rounds", rounds)
     return best_set_of_parameters
