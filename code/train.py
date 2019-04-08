@@ -36,32 +36,33 @@ def tune_encoder_params(train_set, vad_set, pre_trained_path=""):
     opts = [("ADAM", 0.001), ("SGD", 0.1), ("SGD", 0.01)]
     hid = [32, 64]
     epoch = 3
-    best_accuracy = -1
+    best_loss = 99999999999999999
+    best_accuracy = 0
     best_set_of_parameters = []
     rounds = 0
 
     print("Training Set Size =", len(train_set))
+    print("Training Epochs =", epoch)
     print("Validation Set Size =", len(vad_set))
-    print("Epoch =", epoch)
 
     for hidden_num in hid:
         for opt in opts:
             rounds += 1
             print("(Round " + str(rounds) + ") Parameters Details (opt,lr,hid):", opt[0],
                   "," + str(opt[1]) + " ," + str(hidden_num))
-            net, predictor = train_encoder(train_set, epoch=epoch, learning_r=opt[1], hidden_num=hidden_num,
-                                           opt=opt[0],
-                                           pre_trained_path=pre_trained_path)
-            accuracy = test_encoder(net, predictor, vad_set)
-            if accuracy > best_accuracy:
-                best_accuracy = accuracy
+            net, predictor, test_loss, test_accuracy = train_encoder(train_set, epoch=epoch, learning_r=opt[1], hidden_num=hidden_num,
+                                                                     opt=opt[0],
+                                                                     pre_trained_path=pre_trained_path, test_set=vad_set)
+            if test_loss < best_loss:
+                best_loss = test_loss
+                best_accuracy = test_accuracy
                 best_set_of_parameters = [hidden_num, opt[0], opt[1]]
     print("Best Hyper-parameters obtains after the hold out validation [hid,opt,lr] ")
-    print(best_set_of_parameters, "with ", best_accuracy, " of validation accuracy")
+    print(best_set_of_parameters, "with ", best_accuracy, " of validation accuracy with Cross Entropy Loss: ", best_loss)
     return best_set_of_parameters
 
 
-def test_encoder(model, predictor, vad_set, name="Validation"):
+def test_encoder(model, predictor, vad_set, name="Validation", show_log=True):
     data_loader = make_data_loader(vad_set)
     correct = 0
     total = 0
@@ -89,9 +90,10 @@ def test_encoder(model, predictor, vad_set, name="Validation"):
         correct += (predicted == labels_cpu).sum().item()
         total_loss += loss.item()
 
-    print(" " + name + ' Accuracy of the model on the ' + name + ' set images: {} %'.format(100 * correct / total))
-    print("With Total Loss: ", total_loss)
-    return 100 * correct / total
+    if show_log:
+        print(" " + name + ' Accuracy of the model on the ' + name + ' set images: {} %'.format(100 * correct / total),
+          " with Cross Entropy Loss: ", total_loss)
+    return total_loss, 100 * correct / total
 
 
 def test_decoder(encoder, decoder, vad_set, name="Validation"):
@@ -122,8 +124,10 @@ def test_decoder(encoder, decoder, vad_set, name="Validation"):
     return total_loss
 
 
-def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=32, pre_trained_path=''):
+def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=32, pre_trained_path='', test_set=None, name="Validation"):
     data_loader = make_data_loader(data_to_loader=train_set, batch_size=batch_size)
+    best_test_loss = 9999999999999
+    best_test_accuracy = 0
 
     net = Encoder()
     predictor = Predictor(hidden_num=hidden_num)
@@ -143,7 +147,7 @@ def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=
         optimizer = optim.SGD(params, lr=learning_r)
 
     for epoch in range(epoch):  # loop over the dataset multiple times
-
+        print("Epoch: ", epoch)
         running_loss = 0.0
         for i, data in enumerate(data_loader, 0):
             # get the inputs
@@ -171,7 +175,13 @@ def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=
                       (epoch + 1, i + 1, running_loss / 2000))
                 running_loss = 0.0
 
-    return net, predictor
+        if test_set is not None:
+            test_loss, accuracy = test_encoder(net, predictor, test_set, name=name, show_log=True)
+            if test_loss < best_test_loss:
+                best_test_loss = test_loss
+                best_test_accuracy = accuracy
+
+    return net, predictor, best_test_loss, best_test_accuracy
 
 
 def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_size=32, pre_trained_path=''):
@@ -182,8 +192,7 @@ def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_siz
     decoder = Decoder()
 
     if pre_trained_path != '':
-        encoder.load_state_dict(torch.load(pre_trained_path))
-        encoder.eval()
+        encoder = torch.load(pre_trained_path)["model"]
 
     if use_gpu:
         decoder = decoder.cuda()
@@ -229,7 +238,7 @@ def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_siz
     return encoder, decoder
 
 
-def tune_decoder_params(train_set, vad_set):
+def tune_decoder_params(train_set, vad_set, pre_trained_path=""):
     opts = [("ADAM", 0.001), ("SGD", 0.1), ("SGD", 0.01)]
     epoch = 3
     best_accuracy = -1
@@ -247,7 +256,7 @@ def tune_decoder_params(train_set, vad_set):
               ", " + str(opt[1]))
         encoder, decoder = train_decoder(train_set, epoch=epoch, learning_r=opt[1],
                                          opt=opt[0],
-                                         pre_trained_path='')
+                                         pre_trained_path=pre_trained_path)
         accuracy = test_decoder(encoder, decoder, vad_set)
         if accuracy > best_accuracy:
             best_accuracy = accuracy

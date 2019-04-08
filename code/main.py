@@ -77,12 +77,13 @@ if __name__ == '__main__':
     best_set_parameters = [32, "ADAM", 0.001]
     tune = True
     encoder_scratch = True
-    encoder_pretrained = True
+    encoder_pretrained = False
     decoder = True
     train_round = 1
+    top_accuracy = []
 
     '''
-    a. Encoder from scratch
+    a. CNN Encoder from scratch
     '''
     if encoder_scratch:
         print("---A. Encoder Scratch---")
@@ -99,18 +100,14 @@ if __name__ == '__main__':
             '''
             print("---2. Training Entire --")
             print("Round: ", i + 1)
-            net, predictor = train.train_encoder(train_ds, hidden_num=best_set_parameters[0], opt=best_set_parameters[1],
-                                                 learning_r=best_set_parameters[2],
-                                                 epoch=10)
-            train.test_encoder(net, predictor, train_ds, "Training")
-            '''
-            3. Testing
-            '''
-            print("---3. Testing----")
-            train.test_encoder(net, predictor, eval_ds, "Testing")
+            net, predictor, test_loss, test_accuracy = train.train_encoder(train_ds, hidden_num=best_set_parameters[0],
+                                                                           opt=best_set_parameters[1],
+                                                                           learning_r=best_set_parameters[2],
+                                                                           epoch=10, test_set=eval_ds, name="Test")
+
     print("---------------------------------------------------------------------------------------------")
     '''
-    b. Encoder from pre-trained
+    b. CNN Encoder from Pre-Trained
     '''
     if encoder_pretrained:
         print("---B. Encoder Pretrained---")
@@ -128,7 +125,8 @@ if __name__ == '__main__':
             '''
             print("---2. Training Entire --")
             print("Round: ", i + 1)
-            net, predictor = train.train_encoder(train_ds, hidden_num=best_set_parameters[0], opt=best_set_parameters[1],
+            net, predictor = train.train_encoder(train_ds, hidden_num=best_set_parameters[0],
+                                                 opt=best_set_parameters[1],
                                                  learning_r=best_set_parameters[2],
                                                  epoch=10, pre_trained_path='./pretrained_encoder.pt')
             train.test_encoder(net, predictor, train_ds, "Training")
@@ -139,7 +137,7 @@ if __name__ == '__main__':
             train.test_encoder(net, predictor, eval_ds, "Testing")
     print("---------------------------------------------------------------------------------------------")
     '''
-    c. Decoder
+    c. CNN Decoder
     '''
     if decoder:
         print("---C. Decoder ---")
@@ -150,14 +148,15 @@ if __name__ == '__main__':
             '''
             print("---1. Hold out Validation---")
             train_set, valid_set = train.cut_validation(train_ds)
-            best_set_parameters = train.tune_decoder_params(train_set, valid_set)
+            best_set_parameters = train.tune_decoder_params(train_set, valid_set,
+                                                            pre_trained_path='./pretrained_encoder.pt')
         '''
         2. Training from Scratch
         '''
         print("---2. Training Entire---")
         encoder, decoder = train.train_decoder(train_ds, opt=best_set_parameters[0],
                                                learning_r=best_set_parameters[1],
-                                               epoch=2)
+                                               epoch=2, pre_trained_path='./pretrained_encoder.pt')
         train.test_decoder(encoder, decoder, train_ds, "Training")
         '''
         3. Testing
