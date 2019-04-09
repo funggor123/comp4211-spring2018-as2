@@ -11,6 +11,7 @@ from tensorboardX import SummaryWriter
 
 use_gpu = torch.cuda.is_available()
 use_gpu = True
+tune_params_epchs = 20
 
 writer_train = SummaryWriter('runs/train_0')
 writer_test = SummaryWriter('runs/test_0')
@@ -41,7 +42,7 @@ def show_image(image):
 def tune_encoder_params(train_set, vad_set, pre_trained_path=""):
     opts = [("ADAM", 0.001), ("SGD", 0.1), ("SGD", 0.01)]
     hid = [32, 64]
-    epoch = 3
+    epoch = tune_params_epchs
     best_loss = 99999999999999999
     best_accuracy = 0
     best_set_of_parameters = []
@@ -210,11 +211,11 @@ def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=
             writer_test.add_scalar('top-1_accuracy', best_test_accuracy, epoch)
 
             if len(accuracy_array) < 3:
-                writer_train.add_scalar('top-3_accuracy', 0, epoch)
-                writer_test.add_scalar('top-3_accuracy', 0, epoch)
+                writer_train.add_scalar('top-3_accuracy', 0, epoch+1)
+                writer_test.add_scalar('top-3_accuracy', 0, epoch+1)
             else:
-                writer_train.add_scalar('top-3_accuracy', sorted(train_accuracy_array)[-3], epoch)
-                writer_test.add_scalar('top-3_accuracy', sorted(accuracy_array)[-3], epoch)
+                writer_train.add_scalar('top-3_accuracy', sorted(train_accuracy_array)[-3], epoch+1)
+                writer_test.add_scalar('top-3_accuracy', sorted(accuracy_array)[-3], epoch+1)
 
     return net, predictor, best_test_loss, best_test_accuracy, accuracy_array
 
@@ -273,20 +274,20 @@ def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_siz
             test_loss = test_decoder(encoder, decoder, vad_set=test_set, name=name, show_log=True, img_tag=img_tag,
                                      tensorboard=tensorboard, epoch=epoch)
             if tensorboard and name is not "Validation":
-                writer_test.add_scalar('MSE_loss', test_loss, epoch)
+                writer_test.add_scalar('MSE_loss', test_loss, epoch+1)
 
             if test_loss < best_test_loss:
                 best_test_loss = test_loss
 
         if tensorboard and name is not "Validation":
-            writer_train.add_scalar('MSE_loss', train_loss, epoch)
+            writer_train.add_scalar('MSE_loss', train_loss, epoch+1)
 
     return encoder, decoder, best_test_loss
 
 
 def tune_decoder_params(train_set, vad_set, pre_trained_path=""):
     opts = [("ADAM", 0.001), ("SGD", 0.1), ("SGD", 0.01)]
-    epoch = 3
+    epoch = tune_params_epchs
     best_test_loss = 99999
     best_set_of_parameters = []
     rounds = 0

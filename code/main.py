@@ -9,7 +9,7 @@ from torch.utils.data import ConcatDataset, Subset
 from torchvision.transforms import ToTensor, Compose
 import numpy as np
 import train
-
+import time
 
 # For convenience, show image at index in dataset
 def show_image(dataset, index):
@@ -77,11 +77,11 @@ if __name__ == '__main__':
     best_set_parameters = [32, "ADAM", 0.001]
     tune = True
     encoder_scratch = True
-    encoder_pretrained = False
-    tensorboard = False
+    encoder_pretrained = True
+    tensorboard = True
     decoder = False
-    train_round = 4
-    train_epoch = 5
+    train_round = 5
+    train_epoch = 20
     top_1_accuracy_arr = []
     loss_arr = []
     top_3_accuracy_arr = []
@@ -95,6 +95,8 @@ if __name__ == '__main__':
             print("---1. Hold out Validation---")
             train_set, valid_set = train.cut_validation(train_ds)
             best_set_parameters = train.tune_encoder_params(train_set, valid_set)
+
+        start_time = time.time()
         for i in range(train_round):
             print("---2. Training in whole training set --")
             print("Round: ", i + 1)
@@ -126,11 +128,16 @@ if __name__ == '__main__':
             top_3_accuracy_arr.append(sorted(accuracy_array)[-3])
             loss_arr.append(best_test_loss)
 
+
+
         print("Top-1 Accuracy Mean and std", np.array(top_1_accuracy_arr).mean(), " , ",
               np.array(top_1_accuracy_arr).std())
         print("Top-3 Accuracy Mean and std", np.array(top_3_accuracy_arr).mean(), " , ",
               np.array(top_3_accuracy_arr).std())
         print("Cross Entropy Loss Mean and std", np.array(loss_arr).mean(), " , ", np.array(loss_arr).std())
+
+        elapsed_time = time.time() - start_time
+        print(elapsed_time, " seconds to complete the task")
 
     print("---------------------------------------------------------------------------------------------")
 
@@ -142,8 +149,9 @@ if __name__ == '__main__':
         if tune:
             print("---1. Hold out Validation---")
             train_set, valid_set = train.cut_validation(train_ds)
-            best_set_parameters = train.tune_encoder_params(train_set, valid_set,
-                                                            pre_trained_path='./pretrained_encoder.pt')
+            best_set_parameters = train.tune_encoder_params(train_set, valid_set,pre_trained_path='./pretrained_encoder.pt')
+
+        start_time = time.time()
         for i in range(train_round):
             print("---2. Training in whole training set --")
             print("Round: ", i + 1)
@@ -182,6 +190,8 @@ if __name__ == '__main__':
         print("Top-3 Accuracy Mean and std", np.array(top_3_accuracy_arr).mean(), " , ",
               np.array(top_3_accuracy_arr).std())
         print("Cross Entropy Loss Mean and std", np.array(loss_arr).mean(), " , ", np.array(loss_arr).std())
+        elapsed_time = time.time() - start_time
+        print(elapsed_time, " seconds to complete the task")
 
     print("---------------------------------------------------------------------------------------------")
 
@@ -197,6 +207,7 @@ if __name__ == '__main__':
             best_set_parameters = train.tune_decoder_params(train_set, valid_set,
                                                             pre_trained_path='./pretrained_encoder.pt')
         print("---2. Training Entire---")
+        start_time = time.time()
         encoder, decoder, best_loss = train.train_decoder(train_ds, opt=best_set_parameters[0],
                                                           learning_r=best_set_parameters[1],
                                                           epoch=train_epoch, pre_trained_path='./pretrained_encoder.pt',
@@ -205,3 +216,5 @@ if __name__ == '__main__':
                                                           img_tag="Img_Result_Test"
                                                           )
         print("Lowest Loss", best_loss)
+        elapsed_time = time.time() - start_time
+        print(elapsed_time, " seconds to complete the task")
