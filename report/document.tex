@@ -189,91 +189,94 @@ The following are the screen shot of the Network of CAE Decoder and loading the 
 
 \subsection{Hold out validation result of CAE with Pretrained Encoder}
 
-The following are the hold out validation results of the CAE with Pretrained Encoder. The network archiecture of using in the hold out validation was the same as the snapshot above. In the validation, we partitioned the training set into the training and validation sets with ratio 4:1. For each candidate set of hyperparameters, we trained the network for $20$ epochs batch size $32$ and validate it against the validation set. The cross entropy loss of the validation set shown in the results table was the optimal one .
+The following are the hold out validation results of the CAE with Pretrained Encoder. The network archiecture of using in the hold out validation was the same as the snapshot above. In the validation, we partitioned the training set into the training and validation sets with ratio 4:1. For each candidate set of hyperparameters, we trained the network for $20$ epochs batch size $32$ and validate it against the validation set. The MSE loss of the validation set shown in the results table was the optimal one .
 
 
 \begin{table}[htb]
-\caption{Hold out Validation Results of scratch CNN classifer}
-	\label{sample-table}
-	\centering
-\begin{tabular}{lllll}
-\toprule
-		\cmidrule{1-5}
-		Parameters set& Optimizer & Learning Rate & Num of Hidden & Cross Entropy Loss 		\\
-		\midrule
- 			1 & Adam & 0.001 & 32 & 440.98172 \\
- 			2 & SGD & 0.1 & 32 &  2533.93441\\
- 			3 & SGD & 0.01 & 32 & 2533.97749 \\
-			4 & Adam & 0.001 & 64 & wd \\
- 			5 & SGD & 0.1 & 64 &  wd\\
- 			6 & SGD & 0.01 & 64 & dw \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[scale=0.3]{fifa_auc_train.png}
-  \includegraphics[scale=0.3]{fifa_auc_test.png}
-  \caption{Learning Curve of Cross Entropy Loss}
-\end{figure}
-
-
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[scale=0.3]{finance_auc_train.png}
-  \includegraphics[scale=0.3]{finance_auc_test.png}
-  \caption{Learning Curve of Top-1 Accuracy}
-\end{figure}
-
-\pagebreak
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[scale=0.3]{orbits_auc_train.png}
-  \includegraphics[scale=0.3]{orbits_auc_test.png}
-  \caption{Learning Curve of Top-3 Accuracy}
-\end{figure}
-
-The cross entropy loss of parameters set x had the lowest optimal cross entropy loss after conducting the hold out validation, so we would choose the parameters set [Adam, 0.001, 32] as the hyperparameters for the training in the testing phase.
-
-\subsection{Testing Results of CAE with Pretrained Encoder}
-
-In the testing phase, for both CNN classifier from scratch and with Pretrained Encoder Weights, we trained using the entire training set with the best set of hyperparameters obtained from the hold out validation and the same network architecture as the hold out validation, and tested with the testing test. We used $32$ as our batch size and trained with $20$ epoch. The following was the results obtained from the testing phase.
-
-\begin{table}[htb]
-\caption{Testing Result Metric of CNN classifier from scratch}
+\caption{Hold out Validation Results of the CAE with Pretrained Encoder}
 	\label{sample-table}
 	\centering
 \begin{tabular}{llll}
 \toprule
 		\cmidrule{1-4}
-		& Cross Entropy Loss & Top-1 Accuracy & Top-3 Accuracy 		\\
-	\midrule
- 	Mean & SGD & 0.1 & 32 \\
- 	Std & SGD & 0.1 & 32\\
+		Parameters set& Optimizer & Learning Rate & MSE Loss\\
+		\midrule
+ 			1 & Adam & 0.01 & 0.02729 \\
+ 			2 & SGD & 0.1 &  0.03881 \\
+ 			3 & SGD & 0.01 & 0.11098 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+Some examples of the image recontructed by the decoder network by using different set of parameters during the hold out validation were shown below.
+(The left is the input image and the right is the recontructed image.)
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=0.9]{val_raw_round1.png}
+  \includegraphics[scale=0.9]{val_recond_round1.png}
+  \caption{Parameters set 1}
+\end{figure}
+
+
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[scale=0.9]{val_raw_round2.png}
+	\includegraphics[scale=0.9]{val_recond_round2.png}
+	\caption{Parameters set 2}
+\end{figure}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[scale=0.9]{val_raw_round3.png}
+	\includegraphics[scale=0.9]{val_recond_round3.png}
+	\caption{Parameters set 3}
+\end{figure}
+
+\pagebreak
+
+From the results of hold out validation, we could see for parameters set $1$, it had the lowest MSE loss $0.02729$ and the quality of the recontructed image was the best. Therefore, we would choose the parameters set $[Adam, 0.01]$ as the hyperparameters for the training in the testing phase.
+
+\subsection{Testing Results of CAE with Pretrained Encoder}
+
+In the testing phase, we trained using the entire training set with the best set of hyperparameters obtained from the hold out validation and the same network architecture as the hold out validation, and tested with the testing test. We used $32$ as the batch size and trained for $20$ epoch. The following was the results obtained from the testing phase. The MSE Loss shown in the table was the optimal MSE loss.
+
+\begin{table}[htb]
+\caption{Testing Result CNN classifier from scratch}
+	\label{sample-table}
+	\centering
+\begin{tabular}{ll}
+\toprule
+		\cmidrule{1-2}
+		& Best MSE Loss	\\
+	\midrule
+ 	& 0.02817 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Some examples of the image recontructed by the decoder network during the test phase were shown below.
 
 \pagebreak
 
 \begin{figure}[h]
   \centering
-  \includegraphics[scale=0.3]{fifa_lg.png}
-  \caption{Screen shot of the CNN Network}
+  \includegraphics[scale=0.9]{test_raw_image.png}
+  \caption{Raw Image}
 \end{figure}
 
 \begin{figure}[h]
   \centering
-  \includegraphics[scale=0.3]{fifa_lg.png}
-  \caption{Screen shot of the CNN Network}
+  \includegraphics[scale=0.9]{test_recond_image.png}
+  \caption{Recontructed Image}
 \end{figure}
 
+The following was the learning curve of the MSE loss. The blue color curve was results on testing set and the orange color curve was the results on training set. 
 
-From the square loss histogram of test sets, we found out that the mean squared error of the most of the data points are around zero. It means that this model perform quite well for most of the data points. However, for the finance datasets, there are some data points that have the sqaured error far away from zero ($23.77581$) which means that there might be some \textbf{outliers} that far away from the curve.
+
+
+
 
 \end{document}
 

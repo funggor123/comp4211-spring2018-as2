@@ -128,10 +128,10 @@ def test_decoder(encoder, decoder, vad_set, name="Validation", show_log=True, im
             num_show += 1
             if tensorboard:
                 raw = vutils.make_grid(images, normalize=True, scale_each=True)
-                writer_test.add_image(img_tag + "Raw Image", raw, epoch + 1)
+                writer_test.add_image(img_tag + "Raw Image", raw, epoch)
 
                 img = vutils.make_grid(outputs.cpu(), normalize=True, scale_each=True)
-                writer_test.add_image(img_tag + "Reconstruct by CNN", img, epoch + 1)
+                writer_test.add_image(img_tag + "Reconstruct by CNN", img, epoch)
 
         loss = criterion(outputs, images)
         total_loss += loss.item()
@@ -205,18 +205,18 @@ def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=
                 best_test_accuracy = accuracy
 
         if tensorboard:
-            writer_train.add_scalar('loss', best_train_loss, epoch + 1)
-            writer_test.add_scalar('loss', best_test_loss, epoch + 1)
+            writer_train.add_scalar('loss', best_train_loss, epoch)
+            writer_test.add_scalar('loss', best_test_loss, epoch)
 
-            writer_train.add_scalar('top-1_accuracy', best_train_accuracy, epoch + 1)
-            writer_test.add_scalar('top-1_accuracy', best_test_accuracy, epoch + 1)
+            writer_train.add_scalar('top-1_accuracy', best_train_accuracy, epoch)
+            writer_test.add_scalar('top-1_accuracy', best_test_accuracy, epoch)
 
             if len(accuracy_array) < 3:
-                writer_train.add_scalar('top-3_accuracy', 0, epoch+1)
-                writer_test.add_scalar('top-3_accuracy', 0, epoch+1)
+                writer_train.add_scalar('top-3_accuracy', 0, epoch)
+                writer_test.add_scalar('top-3_accuracy', 0, epoch)
             else:
-                writer_train.add_scalar('top-3_accuracy', sorted(train_accuracy_array)[-3], epoch+1)
-                writer_test.add_scalar('top-3_accuracy', sorted(accuracy_array)[-3], epoch+1)
+                writer_train.add_scalar('top-3_accuracy', sorted(train_accuracy_array)[-3], epoch)
+                writer_test.add_scalar('top-3_accuracy', sorted(accuracy_array)[-3], epoch)
 
     return net, predictor, best_test_loss, best_test_accuracy, accuracy_array
 
@@ -275,13 +275,13 @@ def train_decoder(train_set, opt, learning_r, encoder=None, epoch=500, batch_siz
             test_loss = test_decoder(encoder, decoder, vad_set=test_set, name=name, show_log=True, img_tag=img_tag,
                                      tensorboard=tensorboard, epoch=epoch)
             if tensorboard and name is not "Validation":
-                writer_test.add_scalar('MSE_loss', test_loss, epoch+1)
+                writer_test.add_scalar('MSE_loss', test_loss, epoch)
 
             if test_loss < best_test_loss:
                 best_test_loss = test_loss
 
         if tensorboard and name is not "Validation":
-            writer_train.add_scalar('MSE_loss', train_loss, epoch+1)
+            writer_train.add_scalar('MSE_loss', train_loss, epoch)
 
     return encoder, decoder, best_test_loss
 
