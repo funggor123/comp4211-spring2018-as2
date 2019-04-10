@@ -37,24 +37,32 @@
 \section{CNN Classifier}
 
 \subsection{Screen Shots of the CNN Classifier}
-The following are the screen shot of the CNN Network and loading the pretrained encoder.
+The following are the screen shot of the Predictor Network, CNN Encoder Network and loading the pretrained encoder.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[scale=0.3]{fifa_lg.png}
-  \caption{Screen shot of the CNN Network}
+  \includegraphics[scale=1]{encoder.png}
+  \caption{Screen Shots of Encoder Network}
+\end{figure}
+
+\pagebreak
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=1]{predictor.png}
+  \caption{Screen Shots of Predictor Network}
 \end{figure}
 
 \begin{figure}[h]
   \centering
-  \includegraphics[scale=0.3]{fifa_lg.png}
-  \caption{Screen Loading the Pretrained Encoder}
+  \includegraphics[scale=1]{load_model.png}
+  \caption{Screen Shots of Loading Pretrained Encoder Weights}
 \end{figure}
+
 \subsection{Hold out validation result of CNN classifier from scratch}
 
 The following are the hold out validation results of CNN classifier from scratch. The network archiecture of using in the hold out validation was the same as the snapshot above. In the validation, we partitioned the training set into the training and validation sets with ratio 4:1. For each candidate set of hyperparameters, we trained the network for $20$ epochs batch size $32$ and validate it against the validation set. The cross entropy loss on validation set shown in the results table was the optimal one .
 
-\pagebreak
 
 \begin{table}[htb]
 \caption{Hold out Validation Results of scratch CNN classifer}
@@ -84,7 +92,7 @@ The following are the hold out validation results of the CNN classifier with pre
 
 
 \begin{table}[htb]
-\caption{Hold out Validation Results of scratch CNN classifer}
+\caption{Hold out Validation Results of CNN classifer with Pretrained Encoder Weights}
 	\label{sample-table}
 	\centering
 \begin{tabular}{lllll}
@@ -150,7 +158,7 @@ The following was the learning curve of the testing metric that we randomly sele
   \caption{Learning Curve of Cross Entropy Loss}
 \end{figure}
 
-
+\pagebreak
 
 \begin{figure}[h]
   \centering
@@ -159,7 +167,6 @@ The following was the learning curve of the testing metric that we randomly sele
   \caption{Learning Curve of Top-1 Accuracy}
 \end{figure}
 
-\pagebreak
 
 \begin{figure}[h]
   \centering
@@ -168,24 +175,38 @@ The following was the learning curve of the testing metric that we randomly sele
   \caption{Learning Curve of Top-3 Accuracy}
 \end{figure}
 
-From the square loss histogram of test sets, we found out that the mean squared error of the most of the data points are around zero. It means that this model perform quite well for most of the data points. However, for the finance datasets, there are some data points that have the sqaured error far away from zero ($23.77581$) which means that there might be some \textbf{outliers} that far away from the curve.
+
+\subsection{Analysis on the performance of the CNN classifiers}
+
+Base on the results of the empirical test results, we found out that the pretrained model does help in \textbf{decreasing the training time}. Since, from the results of hold out validation of CNN classifer with Pretrained Weights (Table $2$), we could see the cross entropy loss of validation set that using different set of hyperparameters for training are quite near and low $(902.99-636.57)$. On the other hand, from the results of of hold out validation of CNN classifer without pretrain-ed Weights (Table $1$), we could see the cross entropy loss of using different set of hyper-parameters are quite vary in range $(410.5471-2534.04213)$ and only little of them got low cross entropy loss. Therefore, by using pretrained model, it is far more easier to find good hyper-parameters for final training and hence it reduce for hold out validation and hence helps in decrasing the training time.
+
+However, the testing results of using the CNN classifier with pretrained weight was not as good as the CNN classifier without pretrained weight. We could see the mean of the cross entropy loss, top-1 accuracy and top-3 accuracy of the CNN without pretrained weight (Table $3$) is better than the CNN with pretrained weight. (Table $4$) with the same training epoch. Therefore, once if we could find a good hyparameters for training, the rate of convergence of CNN without pretrained weight is faster than with pretrained weight.
+
+
+
+\pagebreak
 
 \section{CAE with Pretrained Encoder}
 
 \subsection{Screen Shots of the CAE with Pretrained Encoder}
-The following are the screen shot of the Network of CAE Decoder and loading the pretrained encoder.
+The following are the screen shots of the Network of CAE Decoder and loading the pretrained encoder.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[scale=0.3]{fifa_lg.png}
+  \includegraphics[scale=1]{decoder.png}
   \caption{Screen shot of the Network of CAE Decoder}
 \end{figure}
 
+\pagebreak
+
+
 \begin{figure}[h]
   \centering
-  \includegraphics[scale=0.3]{fifa_lg.png}
-  \caption{Screen Loading the Pretrained Encoder}
+  \includegraphics[scale=1]{load_model_de.png}
+  \caption{Screen shot of Loading the Pretrained Encoder}
 \end{figure}
+
+
 
 \subsection{Hold out validation result of CAE with Pretrained Encoder}
 
@@ -243,7 +264,7 @@ From the results of hold out validation, we could see for parameters set $1$, it
 In the testing phase, we trained using the entire training set with the best set of hyperparameters obtained from the hold out validation and the same network architecture as the hold out validation, and tested with the testing test. We used $32$ as the batch size and trained for $20$ epoch. The following was the results obtained from the testing phase. The MSE Loss shown in the table was the optimal MSE loss.
 
 \begin{table}[htb]
-\caption{Testing Result CNN classifier from scratch}
+\caption{Testing Result CAE with Pretrained Encoder}
 	\label{sample-table}
 	\centering
 \begin{tabular}{ll}
@@ -256,14 +277,16 @@ In the testing phase, we trained using the entire training set with the best set
 \end{tabular}
 \end{table}
 
-Some examples of the image recontructed by the decoder network during the test phase were shown below.
 
 \pagebreak
+
+Some examples of the image recontructed by the decoder network during the test phase were shown below (In the epoch with minimum MSE loss).
+
 
 \begin{figure}[h]
   \centering
   \includegraphics[scale=0.9]{test_raw_image.png}
-  \caption{Raw Image}
+  \caption{Input Image}
 \end{figure}
 
 \begin{figure}[h]
@@ -274,7 +297,11 @@ Some examples of the image recontructed by the decoder network during the test p
 
 The following was the learning curve of the MSE loss. The blue color curve was results on testing set and the orange color curve was the results on training set. 
 
-
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=0.9]{mse_loss_test.png}
+  \caption{Recontructed Image}
+\end{figure}
 
 
 

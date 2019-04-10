@@ -1,0 +1,7 @@
+Step to Run the Program
+
+Method-1  python3 main.py
+Method-2  Using Pycharm to run main.py
+
+1. pretrained_encoder.pt and train_test_split.npz must be placed in the same location of main.py 
+2. TensorboardX data are stored in runs directory
