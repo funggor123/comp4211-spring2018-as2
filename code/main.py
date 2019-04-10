@@ -79,7 +79,7 @@ if __name__ == '__main__':
     encoder_scratch = True
     encoder_pretrained = True
     tensorboard = True
-    decoder = False
+    decoder = True
     train_round = 5
     train_epoch = 20
     top_1_accuracy_arr = []
@@ -120,9 +120,9 @@ if __name__ == '__main__':
                                                                                                      name="Test",
                                                                                                      tensorboard=tensorboard)
 
-            print("Top-1 Accuracy", best_test_accuracy)
-            print("Top-3 Accuracy", sorted(accuracy_array)[-3])
-            print("Cross Entropy Loss", best_test_loss)
+            print("Top-1 Accuracy on Testing Set", best_test_accuracy)
+            print("Top-3 Accuracy on Testing Set", sorted(accuracy_array)[-3])
+            print("Cross Entropy Loss on Testing Set", best_test_loss)
 
             top_1_accuracy_arr.append(best_test_accuracy)
             top_3_accuracy_arr.append(sorted(accuracy_array)[-3])
@@ -130,11 +130,11 @@ if __name__ == '__main__':
 
 
 
-        print("Top-1 Accuracy Mean and std", np.array(top_1_accuracy_arr).mean(), " , ",
+        print("Top-1 Accuracy Mean and std on Testing Set", np.array(top_1_accuracy_arr).mean(), " , ",
               np.array(top_1_accuracy_arr).std())
-        print("Top-3 Accuracy Mean and std", np.array(top_3_accuracy_arr).mean(), " , ",
+        print("Top-3 Accuracy Mean and std on Testing Set", np.array(top_3_accuracy_arr).mean(), " , ",
               np.array(top_3_accuracy_arr).std())
-        print("Cross Entropy Loss Mean and std", np.array(loss_arr).mean(), " , ", np.array(loss_arr).std())
+        print("Cross Entropy Loss Mean and std on Testing Set", np.array(loss_arr).mean(), " , ", np.array(loss_arr).std())
 
         elapsed_time = time.time() - start_time
         print(elapsed_time, " seconds to complete the task")
@@ -177,19 +177,19 @@ if __name__ == '__main__':
                                                                                                      pre_trained_path='./pretrained_encoder.pt'
                                                                                                      )
 
-            print("Top-1 Accuracy", best_test_accuracy)
-            print("Top-3 Accuracy", sorted(accuracy_array)[-3])
-            print("Cross Entropy Loss", best_test_loss)
+            print("Top-1 Accuracy on Testing Set", best_test_accuracy)
+            print("Top-3 Accuracy on Testing Set", sorted(accuracy_array)[-3])
+            print("Cross Entropy Loss on Testing Set", best_test_loss)
 
             top_1_accuracy_arr.append(best_test_accuracy)
             top_3_accuracy_arr.append(sorted(accuracy_array)[-3])
             loss_arr.append(best_test_loss)
 
-        print("Top-1 Accuracy Mean and std", np.array(top_1_accuracy_arr).mean(), " , ",
+        print("Top-1 Accuracy Mean and std on Testing Set", np.array(top_1_accuracy_arr).mean(), " , ",
               np.array(top_1_accuracy_arr).std())
-        print("Top-3 Accuracy Mean and std", np.array(top_3_accuracy_arr).mean(), " , ",
+        print("Top-3 Accuracy Mean and std on Testing Set", np.array(top_3_accuracy_arr).mean(), " , ",
               np.array(top_3_accuracy_arr).std())
-        print("Cross Entropy Loss Mean and std", np.array(loss_arr).mean(), " , ", np.array(loss_arr).std())
+        print("Cross Entropy Loss Mean and std on Testing Set", np.array(loss_arr).mean(), " , ", np.array(loss_arr).std())
         elapsed_time = time.time() - start_time
         print(elapsed_time, " seconds to complete the task")
 
@@ -215,6 +215,6 @@ if __name__ == '__main__':
                                                           tensorboard=True,
                                                           img_tag="Img_Result_Test"
                                                           )
-        print("Lowest Loss", best_loss)
+        print("Lowest Loss on Testing Set", best_loss)
         elapsed_time = time.time() - start_time
         print(elapsed_time, " seconds to complete the task")

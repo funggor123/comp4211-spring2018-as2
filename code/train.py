@@ -62,6 +62,7 @@ def tune_encoder_params(train_set, vad_set, pre_trained_path=""):
                                                                         opt=opt[0],
                                                                         pre_trained_path=pre_trained_path,
                                                                         test_set=vad_set)
+            print("Optimal Testing Loss for Round- ", rounds, " is: ", test_loss, " with the optimal accuracy:", test_accuracy)
             if test_loss < best_loss:
                 best_loss = test_loss
                 best_accuracy = test_accuracy
@@ -127,10 +128,10 @@ def test_decoder(encoder, decoder, vad_set, name="Validation", show_log=True, im
             num_show += 1
             if tensorboard:
                 raw = vutils.make_grid(images, normalize=True, scale_each=True)
-                writer_test.add_image(img_tag + "Raw Image", raw, epoch)
+                writer_test.add_image(img_tag + "Raw Image", raw, epoch + 1)
 
                 img = vutils.make_grid(outputs.cpu(), normalize=True, scale_each=True)
-                writer_test.add_image(img_tag + "Reconstruct by CNN", img, epoch)
+                writer_test.add_image(img_tag + "Reconstruct by CNN", img, epoch + 1)
 
         loss = criterion(outputs, images)
         total_loss += loss.item()
@@ -204,11 +205,11 @@ def train_encoder(train_set, hidden_num, opt, learning_r, epoch=500, batch_size=
                 best_test_accuracy = accuracy
 
         if tensorboard:
-            writer_train.add_scalar('loss', best_train_loss, epoch)
-            writer_test.add_scalar('loss', best_test_loss, epoch)
+            writer_train.add_scalar('loss', best_train_loss, epoch + 1)
+            writer_test.add_scalar('loss', best_test_loss, epoch + 1)
 
-            writer_train.add_scalar('top-1_accuracy', best_train_accuracy, epoch)
-            writer_test.add_scalar('top-1_accuracy', best_test_accuracy, epoch)
+            writer_train.add_scalar('top-1_accuracy', best_train_accuracy, epoch + 1)
+            writer_test.add_scalar('top-1_accuracy', best_test_accuracy, epoch + 1)
 
             if len(accuracy_array) < 3:
                 writer_train.add_scalar('top-3_accuracy', 0, epoch+1)
@@ -306,6 +307,7 @@ def tune_decoder_params(train_set, vad_set, pre_trained_path=""):
                                                     pre_trained_path=pre_trained_path,
                                                     test_set=vad_set,
                                                     img_tag="Img_Results_Val_Round_"+str(rounds), tensorboard=True)
+        print("Optimal Testing Loss for Round- ", rounds, " is: ", test_loss)
         if test_loss < best_test_loss:
             best_test_loss = test_loss
             best_set_of_parameters = [opt[0], opt[1]]
