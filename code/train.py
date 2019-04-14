@@ -10,7 +10,6 @@ import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 
 use_gpu = torch.cuda.is_available()
-use_gpu = True
 tune_params_epchs = 20
 
 writer_train = SummaryWriter('runs/train_0')
